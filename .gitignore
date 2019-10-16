@@ -30,3 +30,10 @@
 *.exe
 *.out
 *.app
+
+*.suo
+*.user
+*.aps
+.vs
+Debug
+Release
