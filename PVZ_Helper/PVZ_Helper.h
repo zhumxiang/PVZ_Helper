@@ -2,4 +2,4 @@
 
 #include "resource.h"
 
-#define VERSION_NUM "188"
+#define VERSION_NUM "189"
