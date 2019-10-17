@@ -704,11 +704,11 @@ INT_PTR CALLBACK PlantsProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 			break;
 		case IDC_LOCK_BUTTER:/*Ëø¶¨»ÆÓÍ*/
 			CheckDlgButton(hWnd, IDC_LOCK_CORN, BST_UNCHECKED);
-			pvz->LockButter(true);
+			pvz->LockButter(IsDlgButtonChecked(hWnd, IDC_LOCK_BUTTER));
 			break;
 		case IDC_LOCK_CORN:/*Ëø¶¨ÓñÃ×*/
 			CheckDlgButton(hWnd, IDC_LOCK_BUTTER, BST_UNCHECKED);
-			pvz->LockButter(true);
+			pvz->LockCorn(IsDlgButtonChecked(hWnd, IDC_LOCK_CORN));
 			break;
 		default:
 			return FALSE;
