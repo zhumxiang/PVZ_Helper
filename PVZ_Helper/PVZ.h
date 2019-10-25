@@ -151,6 +151,14 @@
 	virtual void asm_init_seed();\
 	virtual void asm_init_zlist();\
 
+enum
+{
+	EXCODE_VAR_FS_MOUTH,
+	EXCODE_VAR_FS_SPOUT,
+	EXCODE_VAR_FS_PRICK,
+
+	EXCODE_VAR_COUNT
+};
 
 struct Plant
 {
@@ -205,10 +213,6 @@ protected:
 
 	struct ExtraCodeAddr
 	{
-		DWORD Row;
-		DWORD Col;
-		DWORD RHurt;
-		DWORD CHurt;
 		DWORD CatR;
 		DWORD CatC;
 		DWORD Throw;
@@ -217,6 +221,7 @@ protected:
 		DWORD ZTimer;
 		DWORD Thread;
 	}eCode;
+	DWORD eCodeStart;
 private:
 	DECLARE_PRIVATE
 };

@@ -6,6 +6,7 @@
 #define OFFSET_2 0x178
 #define MODE_OFFSET 0x918
 #define GARDON_OFFSET 0x94c
+#define EXCODE_SAVE_ADDR 0x0042e6f7
 
 void PVZ_1_2_CN_REPAIR::RunAsm()
 {
@@ -723,13 +724,11 @@ void PVZ_1_2_CN_REPAIR::FSMouth(bool b)
 {
 	if (b)
 	{
-		WriteMemory(0x74, 1, eCode.Row + 0x18 - 0x0d);
-		WriteMemory(0x74, 1, eCode.Col + 0x3d - 0x32);
+		WriteMemory(1, 1, eCodeStart + EXCODE_VAR_FS_MOUTH);
 	}
 	else
 	{
-		WriteMemory(0x70, 1, eCode.Row + 0x18 - 0x0d);
-		WriteMemory(0x70, 1, eCode.Col + 0x3d - 0x32);
+		WriteMemory(0, 1, eCodeStart + EXCODE_VAR_FS_MOUTH);
 	}
 }
 
@@ -737,25 +736,11 @@ void PVZ_1_2_CN_REPAIR::FSPrick(bool b)
 {
 	if (b)
 	{
-		WriteMemory(0x74, 1, eCode.Row + 0x22 - 0x0d);
-		WriteMemory(0x74, 1, eCode.Row + 0x27 - 0x0d);
-		WriteMemory(0x74, 1, eCode.Col + 0x4c - 0x32);
-		WriteMemory(0x74, 1, eCode.Col + 0x51 - 0x32);
-		WriteMemory(0x74, 1, eCode.RHurt + 0x69 - 0x5c);
-		WriteMemory(0x74, 1, eCode.RHurt + 0x6e - 0x5c);
-		WriteMemory(0x74, 1, eCode.CHurt + 0x8b - 0x79);
-		WriteMemory(0x74, 1, eCode.CHurt + 0x90 - 0x79);
+		WriteMemory(1, 1, eCodeStart + EXCODE_VAR_FS_PRICK);
 	}
 	else
 	{
-		WriteMemory(0x70, 1, eCode.Row + 0x22 - 0x0d);
-		WriteMemory(0x70, 1, eCode.Row + 0x27 - 0x0d);
-		WriteMemory(0x70, 1, eCode.Col + 0x4c - 0x32);
-		WriteMemory(0x70, 1, eCode.Col + 0x51 - 0x32);
-		WriteMemory(0x70, 1, eCode.RHurt + 0x69 - 0x5c);
-		WriteMemory(0x70, 1, eCode.RHurt + 0x6e - 0x5c);
-		WriteMemory(0x70, 1, eCode.CHurt + 0x8b - 0x79);
-		WriteMemory(0x70, 1, eCode.CHurt + 0x90 - 0x79);
+		WriteMemory(0, 1, eCodeStart + EXCODE_VAR_FS_PRICK);
 	}
 }
 
@@ -763,23 +748,13 @@ void PVZ_1_2_CN_REPAIR::FSSpout(bool b)
 {
 	if (b)
 	{
-		WriteMemory(0x74, 1, eCode.Row + 0x1d - 0x0d);
-		WriteMemory(0x74, 1, eCode.Col + 0x42 - 0x32);
-		WriteMemory(0x74, 1, eCode.Col + 0x47 - 0x32);
-		WriteMemory(0x74, 1, eCode.RHurt + 0x64 - 0x5c);
-		WriteMemory(0x74, 1, eCode.CHurt + 0x81 - 0x79);
-		WriteMemory(0x74, 1, eCode.CHurt + 0x86 - 0x79);
+		WriteMemory(1, 1, eCodeStart + EXCODE_VAR_FS_SPOUT);
 		WriteMemory(0x39eb, 2, 0x0047a258);
 		WriteMemory(0x16eb, 2, 0x00471640);
 	}
 	else
 	{
-		WriteMemory(0x70, 1, eCode.Row + 0x1d - 0x0d);
-		WriteMemory(0x70, 1, eCode.Col + 0x42 - 0x32);
-		WriteMemory(0x70, 1, eCode.Col + 0x47 - 0x32);
-		WriteMemory(0x70, 1, eCode.RHurt + 0x64 - 0x5c);
-		WriteMemory(0x70, 1, eCode.CHurt + 0x81 - 0x79);
-		WriteMemory(0x70, 1, eCode.CHurt + 0x86 - 0x79);
+		WriteMemory(0, 1, eCodeStart + EXCODE_VAR_FS_SPOUT);
 		WriteMemory(0x8c0f, 2, 0x0047a258);
 		WriteMemory(0x8c0f, 2, 0x00471640);
 	}
@@ -870,20 +845,36 @@ static void __declspec(naked) RowCode()
 {
 	_asm {
 		jmp fend;
-		je short label;
+		je allow;
 		mov edx, [ebp + 8];
 		mov edx, [edx + 0x24];
+		mov eax, ds:[EXCODE_SAVE_ADDR];
 		cmp edx, 6;
-		jo short label;
+		jne not_mouth;
+		cmp byte ptr[eax + EXCODE_VAR_FS_MOUTH], 1;
+		je allow;
+		jmp not_allow;
+	not_mouth:
 		cmp edx, 10;
-		jo short label;
+		jne not_spout;
+		cmp byte ptr[eax + EXCODE_VAR_FS_SPOUT], 1;
+		je allow;
+		jmp not_allow;
+	not_spout:
 		cmp edx, 21;
-		jo short label;
+		je is_prick;
 		cmp edx, 46;
-		jo short label;
+		je is_prick;
+		jmp not_prick;
+	is_prick:
+		cmp byte ptr[eax + EXCODE_VAR_FS_PRICK], 1;
+		je allow;
+		jmp not_allow;
+	not_prick:
+	not_allow:
 		pop edx;
-		push 0x0047A450;
-	label:
+		_jmp(0x0047a450);
+	allow:
 		ret;
 		int 3;
 		int 3;
@@ -895,22 +886,40 @@ static void __declspec(naked) ColCode()
 {
 	_asm {
 		jmp fend;
-		jge short label;
+		jge allow;
 		mov edi, [ebp + 8];
 		mov edi, [edi + 0x24];
+		mov eax, ds:[EXCODE_SAVE_ADDR];
 		cmp edi, 6;
-		jo short label;
+		jne not_mouth;
+		cmp byte ptr[eax + EXCODE_VAR_FS_MOUTH], 1;
+		je allow;
+		jmp not_allow;
+	not_mouth:
 		cmp edi, 10;
-		jo short label;
+		je is_spout;
 		cmp edi, 42;
-		jo short label;
+		je is_spout;
+		jmp not_spout;
+	is_spout:
+		cmp byte ptr[eax + EXCODE_VAR_FS_SPOUT], 1;
+		je allow;
+		jmp not_allow;
+	not_spout:
 		cmp edi, 21;
-		jo short label;
+		je is_prick;
 		cmp edi, 46;
-		jo short label;
+		je is_prick;
+		jmp not_prick;
+	is_prick:
+		cmp byte ptr[eax + EXCODE_VAR_FS_PRICK], 1;
+		je allow;
+		jmp not_allow;
+	not_prick:
+	not_allow:
 		pop edi;
-		push 0x0047A44D;
-	label:
+		_jmp(0x0047a44d);
+	allow:
 		ret;
 		int 3;
 		int 3;
@@ -922,17 +931,29 @@ static void __declspec(naked) RHurtCode()
 {
 	_asm {
 		jmp fend;
-		je short label;
+		je allow;
 		mov edx, [ebp + 0x24];
+		mov eax, ds:[EXCODE_SAVE_ADDR];
 		cmp edx, 10;
-		jo short label;
+		jne not_spout;
+		cmp byte ptr[eax + EXCODE_VAR_FS_SPOUT], 1;
+		je allow;
+		jmp not_allow;
+	not_spout:
 		cmp edx, 21;
-		jo short label;
+		je is_prick;
 		cmp edx, 46;
-		jo short label;
+		je is_prick;
+		jmp not_prick;
+	is_prick:
+		cmp byte ptr[eax + EXCODE_VAR_FS_PRICK], 1;
+		je allow;
+		jmp not_allow;
+	not_prick:
+	not_allow:
 		pop edx;
-		push 0x0047171A;
-	label:
+		_jmp(0x0047171a);
+	allow:
 		ret;
 		int 3;
 		int 3;
@@ -944,19 +965,39 @@ static void __declspec(naked) CHurtCode()
 {
 	_asm {
 		jmp fend;
-		jg short label;
+		jg allow;
 		mov edx, [ebp + 0x24];
+		mov eax, ds:[EXCODE_SAVE_ADDR];
+		cmp edx, 6;
+		jne not_mouth;
+		cmp byte ptr[eax + EXCODE_VAR_FS_MOUTH], 1;
+		je allow;
+		jmp not_allow;
+	not_mouth:
 		cmp edx, 10;
-		jo short label;
+		je is_spout;
 		cmp edx, 42;
-		jo short label;
+		je is_spout;
+		jmp not_spout;
+	is_spout:
+		cmp byte ptr[eax + EXCODE_VAR_FS_SPOUT], 1;
+		je allow;
+		jmp not_allow;
+	not_spout:
 		cmp edx, 21;
-		jo short label;
+		je is_prick;
 		cmp edx, 46;
-		jo short label;
+		je is_prick;
+		jmp not_prick;
+	is_prick:
+		cmp byte ptr[eax + EXCODE_VAR_FS_PRICK], 1;
+		je allow;
+		jmp not_allow;
+	not_prick:
+	not_allow:
 		pop edx;
-		push 0x0047171A;
-	label:
+		_jmp(0x0047171a);
+	allow:
 		mov eax, [edi + 0x24];
 		ret;
 		int 3;
@@ -1213,14 +1254,21 @@ void PVZ_1_2_CN_REPAIR::InitExtraCode()
 	WriteArrayMemory(GET_ADDR(f) + HEAD_OF(f), SIZE_OF(f), temp), \
 	WriteArrayMemory(CallCode, sizeof(CallCode), Caller)
 
-	DWORD temp = ReadMemory(4, 0x0042e6f7);
+	DWORD temp = ReadMemory(4, EXCODE_SAVE_ADDR);
 	bool b = (temp != 0xcccccccc);
 	if (!b)
 	{
 		temp = (DWORD)VirtualAllocEx(GetHandle(), NULL, 4096 * 2, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
 		if (temp)
-			WriteMemory(temp, 4, 0x0042e6f7);
+			WriteMemory(temp, 4, EXCODE_SAVE_ADDR);
 	}
+	eCodeStart = temp;
+	//开关变量
+	unsigned char switch_vars[EXCODE_VAR_COUNT + 2] = {};
+	(unsigned short&)switch_vars[EXCODE_VAR_COUNT] = 0xcccc;
+	WriteArrayMemory(switch_vars, temp);
+	temp += sizeof(switch_vars);
+
 	DWORD Caller;
 	/*传送门*/
 	if (!b)
@@ -1232,7 +1280,6 @@ void PVZ_1_2_CN_REPAIR::InitExtraCode()
 	}
 	temp += SIZE_OF(DoorCode);
 	/*行判定*/
-	eCode.Row = temp;
 	if (!b)
 	{
 		Caller = 0x0047a28d;
@@ -1242,7 +1289,6 @@ void PVZ_1_2_CN_REPAIR::InitExtraCode()
 	}
 	temp += SIZE_OF(RowCode);
 	/*列判定*/
-	eCode.Col = temp;
 	if (!b)
 	{
 		Caller = 0x0047a3a6;
@@ -1252,7 +1298,6 @@ void PVZ_1_2_CN_REPAIR::InitExtraCode()
 	}
 	temp += SIZE_OF(ColCode);
 	/*行伤害判定*/
-	eCode.RHurt = temp;
 	if (!b)
 	{
 		Caller = 0x00471652;
@@ -1262,7 +1307,6 @@ void PVZ_1_2_CN_REPAIR::InitExtraCode()
 	}
 	temp += SIZE_OF(RHurtCode);
 	/*列伤害判定*/
-	eCode.CHurt = temp;
 	if (!b)
 	{
 		Caller = 0x004716be;
