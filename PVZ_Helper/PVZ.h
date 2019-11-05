@@ -214,11 +214,6 @@ protected:
 
 	struct ExtraCodeAddr
 	{
-		DWORD CatR;
-		DWORD CatC;
-		DWORD Throw;
-		DWORD CatDir;
-		DWORD Split;
 		DWORD ZTimer;
 		DWORD Thread;
 	}eCode;

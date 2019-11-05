@@ -765,8 +765,7 @@ void PVZ_1_2_CN_REPAIR::FSCat(bool b)
 	if (b)
 	{
 		WriteMemory(0x70, 1, 0x0047a3bb);
-		WriteMemory(0x75, 1, eCode.CatR + 0xc3 - 0x9b);
-		WriteMemory(0x74, 1, eCode.CatC + 0xd1 - 0xc8);
+		WriteMemory(1, 1, eCodeStart + EXCODE_VAR_FS_CAT);
 		WriteMemory(0x1beb, 2, 0x00477545);
 		static unsigned char code1[] = { 0x33, 0xc0, 0xb0, 0x03, 0xeb, 0x0d };
 		WriteArrayMemory(code1, sizeof(code1), 0x00471460);
@@ -775,10 +774,8 @@ void PVZ_1_2_CN_REPAIR::FSCat(bool b)
 		WriteArrayMemory(_3_code, sizeof(_3_code), 0x0047758f);
 		WriteMemory(0xeb, 1, 0x00479ea0);
 		WriteMemory(0x70, 1, 0x00479f11);
-		WriteMemory(0x70, 1, eCode.Split);
 		WriteMemory(0xe9, 1, 0x004776b3);
 		WriteMemory(0xfffffeaa, 4, 0x004776b4);
-		WriteMemory(0x70, 1, eCode.Throw);
 		WriteMemory(0xcb, 1, 0x00479f5f);
 		WriteMemory(0x80, 1, 0x00479e7d);
 		WriteMemory(0x80, 1, 0x00479e86);
@@ -791,8 +788,7 @@ void PVZ_1_2_CN_REPAIR::FSCat(bool b)
 	else
 	{
 		WriteMemory(0x75, 1, 0x0047a3bb);
-		WriteMemory(0x70, 1, eCode.CatR + 0xc3 - 0x9b);
-		WriteMemory(0xeb, 1, eCode.CatC + 0xd1 - 0xc8);
+		WriteMemory(0, 1, eCodeStart + EXCODE_VAR_FS_CAT);
 		WriteMemory(0x4b8b, 2, 0x00477545);
 		static unsigned char code1[] = { 0x8B, 0x40, 0x24, 0x83, 0xF8, 0x1A };
 		WriteArrayMemory(code1, sizeof(code1), 0x00471460);
@@ -801,10 +797,8 @@ void PVZ_1_2_CN_REPAIR::FSCat(bool b)
 		WriteArrayMemory(_3_code, sizeof(_3_code), 0x0047758f);
 		WriteMemory(0x75, 1, 0x00479ea0);
 		WriteMemory(0x74, 1, 0x00479f11);
-		WriteMemory(0xeb, 1, eCode.Split);
 		WriteMemory(0x8b, 1, 0x004776b3);
 		WriteMemory(0x006a1c4b, 4, 0x004776b4);
-		WriteMemory(0xeb, 1, eCode.Throw);
 		WriteMemory(0x62, 1, 0x00479f5f);
 		WriteMemory(0x84, 1, 0x00479e7d);
 		WriteMemory(0x84, 1, 0x00479e86);
@@ -1011,24 +1005,29 @@ static void __declspec(naked) CatRCode()
 	_asm {
 		jmp fend;
 		cmp eax, 43;
-		jne short _1;
-	_2:
+		jne check;
+	allow:
 		pop eax;
-		_jmp(0x0047A293);
-	_1:
+		_jmp(0x0047a293);
+	check:
+		push eax;
+		mov eax, ds : [EXCODE_SAVE_ADDR];
+		cmp byte ptr[eax + EXCODE_VAR_FS_CAT], 1;
+		pop eax;
+		jne not_allow;
 		cmp eax, 4;
-		je short label;
+		je not_allow;
 		cmp eax, 6;
-		je short label;
+		je not_allow;
 		cmp eax, 10;
-		je short label;
+		je not_allow;
 		cmp eax, 42;
-		je short label;
+		je not_allow;
 		cmp eax, 21;
-		je short label;
+		je not_allow;
 		cmp eax, 46;
-		jo short _2;
-	label:
+		jne allow;
+	not_allow:
 		ret;
 		int 3;
 		int 3;
@@ -1040,23 +1039,26 @@ static void __declspec(naked) CatCCode()
 {
 	_asm {
 		jmp fend;
+		mov ecx, ds:[EXCODE_SAVE_ADDR];
+		cmp byte ptr[ecx + EXCODE_VAR_FS_CAT], 1;
+		jne not_allow;
 		mov ecx, [ebp + 8];
 		mov ecx, [ecx + 0x24];
 		cmp ecx, 4;
-		jmp short label;
+		je not_allow;
 		cmp ecx, 6;
-		je short label;
+		je not_allow;
 		cmp ecx, 10;
-		je short label;
+		je not_allow;
 		cmp ecx, 42;
-		je short label;
+		je not_allow;
 		cmp ecx, 21;
-		je short label;
+		je not_allow;
 		cmp ecx, 46;
-		je short label;
+		je not_allow;
 		pop ecx;
-		push 0x0047A3AC;
-	label:
+		_jmp(0x0047a3ac);
+	not_allow:
 		cmp byte ptr[esp + 0x17], 0;
 		ret;
 		int 3;
@@ -1069,7 +1071,11 @@ static void __declspec(naked) ThrowCode()
 {
 	_asm {
 		jmp fend;
-		jmp short _1;
+		push eax;
+		mov eax, ds:[EXCODE_SAVE_ADDR];
+		cmp byte ptr[eax + EXCODE_VAR_FS_CAT], 1;
+		pop eax;
+		jne not_open;
 		cmp dword ptr[ebx + 0x24], 47;
 		je _2;
 		test eax, eax;
@@ -1078,8 +1084,8 @@ static void __declspec(naked) ThrowCode()
 	_2:
 		mov ecx, [ebx + 0x1c];
 		push esi;
-		_jmp(0x0047757B);
-	_1:
+		_jmp(0x0047757b);
+	not_open:
 		mov ecx, [ebx + 0x1c];
 		push esi;
 		push ecx;
@@ -1095,17 +1101,17 @@ static void __declspec(naked) CatDirCode()
 	_asm {
 		jmp fend;
 		cmp eax, 52;
-		jne short _1;
-	_3:
-		fld dword ptr ds : [0x0072A8C4];
+		jne check_split;
+	left:
+		fld dword ptr ds : [0x0072a8c4];
 		ret;
-	_1:
+	check_split:
 		cmp eax, 28;
-		jne short _2;
-		cmp ecx, 1;
-		je short _3;
-	_2:
-		fld dword ptr ds : [0x0072A4D4];
+		jne right;
+		cmp edx, 1;
+		je left;
+	right:
+		fld dword ptr ds : [0x0072a4d4];
 		ret;
 		int 3;
 		int 3;
@@ -1117,12 +1123,16 @@ static void __declspec(naked) SplitCode()
 {
 	_asm {
 		jmp fend;
-		jmp short _1;
+		push eax;
+		mov eax, ds:[EXCODE_SAVE_ADDR];
+		cmp byte ptr[eax + EXCODE_VAR_FS_CAT], 1;
+		pop eax;
+		jne not_open;
 		mov ecx, [ebx + 0x1c];
 		push ecx;
 		push ebx;
 		xor ecx, ecx;
-		_call(0x0047A190);
+		_call(0x0047a190);
 		test eax, eax;
 		jne _2;
 		_jmp(0x00477415);
@@ -1133,18 +1143,18 @@ static void __declspec(naked) SplitCode()
 		push ecx;
 		push eax;
 		push ebx;
-		_call(0x00479A50);
+		_call(0x00479a50);
 		pop eax;
 		mov edx, [ebx + 0x1c];
 		push 1;
 		push edx;
 		push eax;
 		push ebx;
-		_call(0x00479A50);
+		_call(0x00479a50);
 		_jmp(0x00477415);
-	_1:
+	not_open:
 		mov esi, 3;
-		_jmp(0x0047764D);
+		_jmp(0x0047764d);
 		int 3;
 		int 3;
 	fend:
@@ -1171,7 +1181,7 @@ static void __declspec(naked) ZTimerCode()
 
 static void __declspec(naked) GetHeadRowsCode()
 {
-	_asm{
+	_asm {
 		jmp fend;
 		mov eax, ds:[DATA_ADDR];
 		mov eax, [eax + OFFSET_1];
@@ -1316,7 +1326,6 @@ void PVZ_1_2_CN_REPAIR::InitExtraCode()
 	}
 	temp += SIZE_OF(CHurtCode);
 	/*香蒲免行判定*/
-	eCode.CatR = temp;
 	if (!b)
 	{
 		Caller = 0x0047a24b;
@@ -1326,7 +1335,6 @@ void PVZ_1_2_CN_REPAIR::InitExtraCode()
 	}
 	temp += SIZE_OF(CatRCode);
 	/*香蒲免列判定*/
-	eCode.CatC = temp;
 	if (!b)
 	{
 		Caller = 0x0047a38c;
@@ -1336,7 +1344,6 @@ void PVZ_1_2_CN_REPAIR::InitExtraCode()
 	}
 	temp += SIZE_OF(CatCCode);
 	/*投手特殊处理*/
-	eCode.Throw = temp;
 	if (!b)
 	{
 		Caller = 0x0047771b;
@@ -1346,7 +1353,6 @@ void PVZ_1_2_CN_REPAIR::InitExtraCode()
 	}
 	temp += SIZE_OF(ThrowCode);
 	/*猫式全屏子弹方向处理*/
-	eCode.CatDir = temp;
 	if (!b)
 	{
 		Caller = 0x00479f2e;
@@ -1356,7 +1362,6 @@ void PVZ_1_2_CN_REPAIR::InitExtraCode()
 	}
 	temp += SIZE_OF(CatDirCode);
 	/*裂荚处理*/
-	eCode.Split = temp;
 	if (!b)
 	{
 		Caller = 0x00477648;

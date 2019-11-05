@@ -1011,8 +1011,10 @@ static void __declspec(naked) CatRCode()
 		pop eax;
 		_jmp(0x004676c8);
 	check:
-		mov ecx, ds : [EXCODE_SAVE_ADDR];
-		cmp byte ptr[ecx + EXCODE_VAR_FS_CAT], 1;
+		push eax;
+		mov eax, ds : [EXCODE_SAVE_ADDR];
+		cmp byte ptr[eax + EXCODE_VAR_FS_CAT], 1;
+		pop eax;
 		jne not_allow;
 		cmp eax, 4;
 		je not_allow;
