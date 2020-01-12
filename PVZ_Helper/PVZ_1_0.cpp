@@ -769,11 +769,6 @@ void PVZ_1_0::FSCat(bool b)
 		WriteMemory(0x70, 1, 0x004677ef);
 		WriteMemory(1, 1, eCodeStart + EXCODE_VAR_FS_CAT);
 		WriteMemory(0x1beb, 2, 0x00464a52);
-		static unsigned char code1[] = { 0x33, 0xc0, 0xb0, 0x03, 0xeb, 0x0f };
-		WriteArrayMemory(code1, sizeof(code1), 0x0045eb10);
-		WriteMemory(0x3f, 1, 0x00464a61);
-		static unsigned char _3_code[] = { 0xE9, 0x91, 0x00, 0x00, 0x00, 0x83, 0xF8, 0x12, 0x75, 0xE9, 0x8B, 0x87, 0x90, 0x00, 0x00, 0x00, 0x83, 0xF8, 0x09, 0x74, 0xBE, 0x83, 0xF8, 0x05, 0x74, 0xB9, 0x83, 0xF8, 0x01, 0x74, 0xB4, 0xE9, 0x74, 0xFE, 0xFF, 0xFF };
-		WriteArrayMemory(_3_code, sizeof(_3_code), 0x00464a9c);
 		WriteMemory(0xeb, 1, 0x004672f4);
 		WriteMemory(0x70, 1, 0x00467369);
 		WriteMemory(0xe9, 1, 0x00464bbc);
@@ -792,11 +787,6 @@ void PVZ_1_0::FSCat(bool b)
 		WriteMemory(0x75, 1, 0x004677ef);
 		WriteMemory(0, 1, eCodeStart + EXCODE_VAR_FS_CAT);
 		WriteMemory(0x4f8b, 2, 0x00464a52);
-		static unsigned char code1[] = { 0x8B, 0x40, 0x24, 0x83, 0xF8, 0x1A };
-		WriteArrayMemory(code1, sizeof(code1), 0x0045eb10);
-		WriteMemory(0x2d, 1, 0x00464a61);
-		static unsigned char _3_code[] = { 0x83, 0xF8, 0x12, 0x0F, 0x85, 0x8D, 0x00, 0x00, 0x00, 0x8B, 0x5F, 0x1C, 0x8B, 0x37, 0x8B, 0x8F, 0x9C, 0x00, 0x00, 0x00, 0x8D, 0x53, 0xFF, 0x8B, 0xC6, 0x89, 0x54, 0x24, 0x14, 0xE8, 0xF2, 0xF1, 0xFE, 0xFF, 0x8B, 0x8F };
-		WriteArrayMemory(_3_code, sizeof(_3_code), 0x00464a9c);
 		WriteMemory(0x75, 1, 0x004672f4);
 		WriteMemory(0x74, 1, 0x00467369);
 		WriteMemory(0x8b, 1, 0x00464bbc);
@@ -1162,6 +1152,78 @@ static void __declspec(naked) SplitCode()
 	}
 }
 
+static void __declspec(naked) CatAirCode()
+{
+	_asm {
+		jmp fend;
+		push eax;
+		mov eax, ds:[EXCODE_SAVE_ADDR];
+		cmp byte ptr[eax + EXCODE_VAR_FS_CAT], 1;
+		pop eax;
+		jne not_open;
+		mov eax, 3;
+		ret 4;
+	not_open:
+		mov eax, [eax + 0x24];
+		cmp eax, 26;
+		_jmp(0x0045eb16);
+	fend:
+	}
+}
+
+static void __declspec(naked) Cat3Code()
+{
+	_asm {
+		jmp fend;
+		push eax;
+		mov eax, ds:[EXCODE_SAVE_ADDR];
+		cmp byte ptr[eax + EXCODE_VAR_FS_CAT], 1;
+		pop eax;
+		jne not_open;
+		_jmp(0x00464b32);
+	not_open:
+		cmp eax, 28;
+		jne _1;
+		_jmp(0x00464aa5);
+	_1:
+		_jmp(0x00464b32);
+	fend:
+	}
+}
+
+static void __declspec(naked) Cat3Code2()
+{
+	_asm {
+		jmp fend;
+		push eax;
+		mov eax, ds:[EXCODE_SAVE_ADDR];
+		cmp byte ptr[eax + EXCODE_VAR_FS_CAT], 1;
+		pop eax;
+		jne not_open;
+		cmp eax, 18;
+		jne not_3;
+		mov eax, [edi + 0x90];
+		cmp eax, 9;
+		je _951;
+		cmp eax, 5;
+		je _951;
+		cmp eax, 1;
+		je _951;
+		_jmp(0x00464934);
+	_951:
+		_jmp(0x00464a6f);
+	not_3:
+		_jmp(0x00464a8f);
+	not_open:
+		cmp eax, 43;
+		jne not_cat;
+		_jmp(0x00464a62);
+	not_cat:
+		_jmp(0x00464a8f);
+	fend:
+	}
+}
+
 static void __declspec(naked) ZTimerCode()
 {
 	_asm {
@@ -1366,6 +1428,32 @@ void PVZ_1_0::InitExtraCode()
 		WRITE_CODE(SplitCode);
 	}
 	temp += SIZE_OF(SplitCode);
+	/*猫对空处理*/
+	if (!b)
+	{
+		Caller = 0x0045eb10;
+		static unsigned char CallCode[] = { 0xe9, 0, 0, 0, 0, 0x90 };
+		(DWORD&)CallCode[1] = temp - Caller - 5;
+		WRITE_CODE(CatAirCode);
+	}
+	temp += SIZE_OF(CatAirCode);
+	/*猫三发处理*/
+	if (!b)
+	{
+		Caller = 0x00464a9c;
+		static unsigned char CallCode[] = { 0xe9, 0, 0, 0, 0 };
+		(DWORD&)CallCode[1] = temp - Caller - 5;
+		WRITE_CODE(Cat3Code);
+	}
+	temp += SIZE_OF(Cat3Code);
+	if (!b)
+	{
+		Caller = 0x00464a5d;
+		static unsigned char CallCode[] = { 0xe9, 0, 0, 0, 0 };
+		(DWORD&)CallCode[1] = temp - Caller - 5;
+		WRITE_CODE(Cat3Code2);
+	}
+	temp += SIZE_OF(Cat3Code2);
 	/*刷怪倒计时*/
 	eCode.ZTimer = temp;
 	if (!b)
